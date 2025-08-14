@@ -3,7 +3,8 @@
     <nav>
       <router-link to="/home">Inicio</router-link> |
       <router-link to="/transaction/new">Nueva Transacción</router-link> |
-      <router-link to="/history">Historial de Movimientos</router-link>
+      <router-link to="/history">Historial de Movimientos</router-link> |
+      <router-link to="/analysis">Análisis de Portafolio</router-link>
     </nav>
     <router-view />
   </div>
@@ -17,7 +18,7 @@
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px; /* Un poco de margen superior */
+  margin-top: 60px;
 }
 
 nav {
@@ -27,11 +28,11 @@ nav {
 nav a {
   font-weight: bold;
   color: #2c3e50;
-  text-decoration: none; /* Quitar el subrayado por defecto */
-  margin: 0 10px; /* Espaciado entre enlaces */
+  text-decoration: none;
+  margin: 0 10px;
 }
 
 nav a.router-link-exact-active {
-  color: #42b983; /* Color para el enlace activo */
+  color: #42b983;
 }
 </style>

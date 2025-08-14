@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from "vue-router";
 import LoginView from "../views/LoginView.vue";
 import HomeView from "../views/HomeView.vue";
-import HistoryView from "../views/HistoryView.vue"; // Importa la nueva vista
-import TransactionForm from "../views/TransactionForm.vue"; // Importa el nuevo componente
+import HistoryView from "../views/HistoryView.vue";
+import TransactionForm from "../views/TransactionForm.vue";
+import AnalysisView from "../views/AnalysisView.vue"; // <-- ¡Importa la nueva vista!
 
 const routes = [
   {
@@ -16,20 +17,25 @@ const routes = [
     component: HomeView,
   },
   {
-    path: "/history", // <-- Ruta para el historial
+    path: "/history",
     name: "history",
     component: HistoryView,
   },
   {
-    path: "/transaction/new", // <-- Ruta para crear una nueva transacción
+    path: "/transaction/new",
     name: "new-transaction",
     component: TransactionForm,
   },
   {
-    path: "/transaction/edit/:id", // <-- Ruta para editar con un ID
+    path: "/transaction/edit/:id",
     name: "edit-transaction",
     component: TransactionForm,
     props: true,
+  },
+  {
+    path: "/analysis", // <-- Nueva ruta para el análisis
+    name: "analysis",
+    component: AnalysisView,
   },
 ];
 
