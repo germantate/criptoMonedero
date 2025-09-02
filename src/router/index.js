@@ -3,7 +3,7 @@ import LoginView from "../views/LoginView.vue";
 import HomeView from "../views/HomeView.vue";
 import HistoryView from "../views/HistoryView.vue";
 import TransactionForm from "../views/TransactionForm.vue";
-import AnalysisView from "../views/AnalysisView.vue"; // <-- ¡Importa la nueva vista!
+import AnalysisView from "../views/AnalysisView.vue";
 
 const routes = [
   {

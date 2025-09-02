@@ -11,7 +11,6 @@
 </template>
 
 <style>
-/* Estilos generales para toda la aplicación */
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
