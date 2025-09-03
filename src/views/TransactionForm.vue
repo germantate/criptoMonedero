@@ -4,7 +4,12 @@
     <form @submit.prevent="submitTransaction">
       <div class="form-group">
         <label for="actionType">Tipo de Movimiento:</label>
-        <select id="actionType" v-model="transaction.action" required>
+        <select
+          id="actionType"
+          v-model="transaction.action"
+          required
+          @change="calculateMoney"
+        >
           <option value="purchase">Compra</option>
           <option value="sale">Venta</option>
         </select>
@@ -12,11 +17,16 @@
 
       <div class="form-group">
         <label for="cryptoCode">Criptomoneda:</label>
-        <select id="cryptoCode" v-model="transaction.crypto_code" required>
+        <select
+          id="cryptoCode"
+          v-model="transaction.crypto_code"
+          required
+          @change="calculateMoney"
+        >
           <option value="">Seleccione una criptomoneda</option>
-          <option value="bitcoin">Bitcoin</option>
+          <option value="btc">Bitcoin</option>
           <option value="usdc">USDC</option>
-          <option value="ethereum">Ethereum</option>
+          <option value="eth">Ethereum</option>
         </select>
       </div>
 
@@ -29,6 +39,7 @@
           step="0.00000001"
           min="0.00000001"
           required
+          @input="calculateMoney"
         />
       </div>
 
@@ -40,9 +51,11 @@
           v-model.number="transaction.money"
           step="0.01"
           min="0.01"
-          required
+          readonly
         />
       </div>
+
+      <p v-if="loading">Calculando importe...</p>
 
       <div class="form-group">
         <label for="datetime">Fecha y Hora:</label>
@@ -54,7 +67,7 @@
         />
       </div>
 
-      <button type="submit">
+      <button type="submit" :disabled="loading">
         {{ isEditMode ? "Guardar Cambios" : "Registrar Transacción" }}
       </button>
     </form>
@@ -63,13 +76,13 @@
 </template>
 
 <script>
-import apiClient from "../services/apiClient"; // Importa tu cliente API
+import apiClient from "../services/apiClient";
+import axios from "axios";
 
 export default {
   name: "TransactionForm",
   props: {
     id: {
-      // Propiedad para recibir el ID de la transacción si estamos en modo edición
       type: String,
       default: null,
     },
@@ -77,56 +90,53 @@ export default {
   data() {
     return {
       transaction: {
-        user_id: "", // Se llenará desde localStorage
-        action: "purchase", // 'purchase' o 'sale'
+        user_id: "",
+        action: "purchase",
         crypto_code: "",
         crypto_amount: null,
         money: null,
-        datetime: "", // Formato DD-MM-YYYY hh:ss
+        datetime: "",
       },
-      datetimeLocal: "", // Para el input type="datetime-local"
+      datetimeLocal: "",
       message: "",
-      messageType: "", // 'success' o 'error'
-      isEditMode: false, // Para saber si estamos creando o editando
+      messageType: "",
+      isEditMode: false,
+      loading: false, //
     };
   },
   watch: {
-    // Observa cambios en datetimeLocal y actualiza transaction.datetime
     datetimeLocal(newValue) {
       this.transaction.datetime = this.formatDateForAPI(newValue);
     },
+    "transaction.crypto_code": "calculateMoney",
+    "transaction.action": "calculateMoney",
   },
   async created() {
-    // Al cargar el componente, obtener el user_id de localStorage
     this.transaction.user_id = localStorage.getItem("user_id");
 
-    // Si hay un ID en las props, significa que estamos editando una transacción
     if (this.id) {
       this.isEditMode = true;
       await this.loadTransaction(this.id);
     } else {
-      // Si es una nueva transacción, establece la fecha y hora actual por defecto
       this.setInitialDateTime();
     }
   },
   methods: {
     setInitialDateTime() {
       const now = new Date();
-      // Formato YYYY-MM-DDTHH:MM para input type="datetime-local"
       this.datetimeLocal = now.toISOString().slice(0, 16);
     },
     formatDateForAPI(isoString) {
       if (!isoString) return "";
       const date = new Date(isoString);
       const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0"); // Meses son 0-11
+      const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = date.getFullYear();
       const hours = String(date.getHours()).padStart(2, "0");
       const minutes = String(date.getMinutes()).padStart(2, "0");
       return `${day}-${month}-${year} ${hours}:${minutes}`;
     },
     parseDateFromAPI(apiDateString) {
-      // Convierte "DD-MM-YYYY hh:ss" a "YYYY-MM-DDThh:mm" para el input datetime-local
       if (!apiDateString) return "";
       const [datePart, timePart] = apiDateString.split(" ");
       const [day, month, year] = datePart.split("-");
@@ -139,18 +149,17 @@ export default {
         const response = await apiClient.get(`transactions/${id}`);
         const data = response.data;
 
-        // Mapea los datos de la API a tu modelo de transacción
         this.transaction = {
           user_id: data.user_id,
           action: data.action,
           crypto_code: data.crypto_code,
-          crypto_amount: parseFloat(data.crypto_amount), // Convertir a número
-          money: parseFloat(data.money), // Convertir a número
-          datetime: this.formatDateForAPI(data.datetime), // Mantener el formato de la API
+          crypto_amount: parseFloat(data.crypto_amount),
+          money: parseFloat(data.money),
+          datetime: this.formatDateForAPI(data.datetime),
         };
-        this.datetimeLocal = this.parseDateFromAPI(data.datetime); // Para el input datetime-local
+        this.datetimeLocal = this.parseDateFromAPI(data.datetime);
 
-        this.message = ""; // Limpiar mensaje de carga
+        this.message = "";
       } catch (error) {
         console.error("Error al cargar la transacción:", error);
         this.message = "Error al cargar la transacción.";
@@ -158,10 +167,9 @@ export default {
       }
     },
     async submitTransaction() {
-      this.message = ""; // Limpiar mensajes anteriores
+      this.message = "";
       this.messageType = "";
 
-      // Validaciones adicionales
       if (this.transaction.crypto_amount <= 0 || this.transaction.money <= 0) {
         this.message =
           "La cantidad de criptomoneda y el dinero deben ser mayores a 0.";
@@ -173,12 +181,10 @@ export default {
         this.messageType = "error";
         return;
       }
-      // Puedes añadir más validaciones de fecha si es necesario
 
       try {
         let response;
         if (this.isEditMode) {
-          // Si estamos en modo edición, usamos PATCH
           this.message = "Actualizando transacción...";
           response = await apiClient.patch(
             `transactions/${this.id}`,
@@ -186,7 +192,6 @@ export default {
           );
           this.message = "Transacción actualizada con éxito.";
         } else {
-          // Si no, es una nueva transacción, usamos POST
           this.message = "Registrando transacción...";
           response = await apiClient.post("transactions", this.transaction);
           this.message = "Transacción registrada con éxito.";
@@ -194,14 +199,71 @@ export default {
         this.messageType = "success";
         console.log("Transacción enviada/actualizada:", response.data);
 
-        // Opcional: Redirigir al historial después de registrar/editar
         setTimeout(() => {
-          this.$router.push("/history"); // Esta ruta la crearemos en el siguiente paso
-        }, 1500); // Espera 1.5 segundos antes de redirigir
+          this.$router.push("/history");
+        }, 1500);
       } catch (error) {
         console.error("Error al registrar/actualizar transacción:", error);
         this.message = `Error al registrar/actualizar transacción: ${error.message}. Verifica tu ID de usuario o conexión.`;
         this.messageType = "error";
+      }
+    },
+
+    async calculateMoney() {
+      // Si la cantidad es 0 o no se ha seleccionado una criptomoneda, no hacemos nada.
+      if (
+        this.transaction.crypto_amount <= 0 ||
+        !this.transaction.crypto_code
+      ) {
+        this.transaction.money = 0;
+        return;
+      }
+
+      this.loading = true;
+      const cryptoCode = this.transaction.crypto_code;
+      const amount = this.transaction.crypto_amount;
+
+      try {
+        // Obtenemos los precios de todos los exchanges para esa criptomoneda
+        const response = await axios.get(
+          `https://criptoya.com/api/${cryptoCode}/ars`
+        );
+        const data = response.data;
+
+        let price = null;
+
+        // Buscamos el primer exchange que tenga precios válidos
+        for (const exchange in data) {
+          if (data[exchange].bid && data[exchange].ask) {
+            // Asignamos el precio de compra o venta y salimos del bucle
+            price =
+              this.transaction.action === "purchase"
+                ? data[exchange].ask
+                : data[exchange].bid;
+            break; // Salimos del bucle una vez que encontramos un precio
+          }
+        }
+
+        // Si encontramos un precio, realizamos el cálculo
+        if (price) {
+          this.transaction.money = price * amount;
+        } else {
+          console.error(
+            "No se encontraron datos de precio para la criptomoneda seleccionada en ningún exchange."
+          );
+          this.transaction.money = 0;
+          alert(
+            "No se pudo obtener el precio en tiempo real. Por favor, revisa tu conexión o la criptomoneda seleccionada."
+          );
+        }
+      } catch (error) {
+        console.error("Error al obtener el precio en tiempo real:", error);
+        alert(
+          "No se pudo obtener el precio en tiempo real. Por favor, revisa tu conexión o la criptomoneda seleccionada."
+        );
+        this.transaction.money = 0;
+      } finally {
+        this.loading = false;
       }
     },
   },
